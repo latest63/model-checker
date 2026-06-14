@@ -6,435 +6,244 @@
 <title>Model Access Checker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --primary: #7C3AED;
-    --primary-hover: #8B5CF6;
-    --primary-glow: rgba(124, 58, 237, 0.35);
-    --secondary: #6366F1;
-    --accent: #06B6D4;
-    --accent-glow: rgba(6, 182, 212, 0.25);
-    --bg: #07070D;
-    --bg-elevated: #0C0C18;
-    --card: #12121F;
-    --card-hover: #181830;
-    --card-border: #1E1E35;
-    --card-border-hover: #2E2E50;
-    --text: #E2E8F0;
-    --text-secondary: #8B95A9;
-    --text-muted: #555D6E;
-    --muted: #1E1E35;
-    --usable: #22C55E;
-    --usable-bg: rgba(34, 197, 94, 0.08);
-    --unusable: #EF4444;
-    --unusable-bg: rgba(239, 68, 68, 0.08);
-    --testing: #F59E0B;
-    --testing-bg: rgba(245, 158, 11, 0.08);
-    --skipped: #555D6E;
-    --skipped-bg: rgba(85, 93, 110, 0.08);
-    --font-ui: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Menlo', monospace;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --radius-lg: 16px;
+    --bg: #0C0C0E;
+    --bg-card: #141417;
+    --bg-elevated: #1A1A1E;
+    --border: #222226;
+    --border-hover: #333338;
+    --text: #EDEDEF;
+    --text-secondary: #9C9CA4;
+    --text-muted: #5C5C66;
+    --accent: #6C6CF0;
+    --accent-subtle: rgba(108, 108, 240, 0.08);
+    --accent-border: rgba(108, 108, 240, 0.2);
+    --green: #34D399;
+    --green-bg: rgba(52, 211, 153, 0.08);
+    --green-border: rgba(52, 211, 153, 0.2);
+    --red: #F87171;
+    --red-bg: rgba(248, 113, 113, 0.08);
+    --red-border: rgba(248, 113, 113, 0.2);
+    --amber: #FBBF24;
+    --amber-bg: rgba(251, 191, 36, 0.08);
+    --grey: #5C5C66;
+    --grey-bg: rgba(92, 92, 102, 0.08);
+    --font-heading: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    --radius: 10px;
+    --radius-sm: 6px;
   }
 
-  html { scroll-behavior: smooth; }
-
   body {
-    font-family: var(--font-ui);
+    font-family: var(--font-body);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Gradient background orbs */
-  .bg-orbs {
-    position: fixed; inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-  }
-  .bg-orbs .orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.3;
-  }
-  .bg-orbs .orb-1 {
-    width: 600px; height: 600px;
-    background: var(--primary);
-    top: -200px; right: -150px;
-  }
-  .bg-orbs .orb-2 {
-    width: 400px; height: 400px;
-    background: var(--accent);
-    bottom: -100px; left: -100px;
-    opacity: 0.15;
-  }
-  .bg-orbs .orb-3 {
-    width: 350px; height: 350px;
-    background: var(--secondary);
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0.08;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .container {
-    position: relative; z-index: 1;
-    max-width: 800px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 40px 20px 80px;
+    padding: 64px 24px 80px;
   }
 
   /* Header */
-  header {
-    text-align: center;
-    margin-bottom: 48px;
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.1));
-    border: 1px solid rgba(124,58,237,0.25);
-    padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--accent);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-  .badge .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulse-dot 2s ease-in-out infinite;
-  }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
+  header { margin-bottom: 40px; }
 
   h1 {
-    font-family: var(--font-mono);
-    font-size: clamp(28px, 5vw, 42px);
+    font-family: var(--font-heading);
     font-weight: 700;
+    font-size: 28px;
     letter-spacing: -0.02em;
-    line-height: 1.2;
-    margin-bottom: 12px;
-    background: linear-gradient(135deg, #E2E8F0 0%, #A5B4FC 50%, #7C3AED 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    line-height: 1.25;
+    color: var(--text);
+    margin-bottom: 8px;
   }
 
   .subtitle {
-    font-size: 16px;
+    font-size: 15px;
     color: var(--text-secondary);
-    max-width: 500px;
-    margin: 0 auto;
     line-height: 1.6;
-  }
-  .subtitle strong {
-    color: var(--text);
-    font-weight: 500;
+    max-width: 480px;
   }
 
-  /* Tool section */
-  .tool-section {
-    background: var(--bg-elevated);
-    border: 1px solid var(--card-border);
-    border-radius: var(--radius-lg);
-    padding: 32px;
+  /* Tool card */
+  .tool-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
     margin-bottom: 24px;
-    backdrop-filter: blur(12px);
-  }
-
-  .input-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-  @media (max-width: 600px) {
-    .input-grid { grid-template-columns: 1fr; }
-    .tool-section { padding: 20px; }
-    .container { padding: 24px 12px 60px; }
   }
 
   .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    margin-bottom: 16px;
   }
-  .input-group.full { grid-column: 1 / -1; }
+  .input-group:last-of-type { margin-bottom: 20px; }
 
   .input-group label {
-    font-size: 11px;
-    font-weight: 600;
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
     color: var(--text-muted);
+    margin-bottom: 6px;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.04em;
   }
 
-  .input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-  .input-wrapper .icon {
-    position: absolute;
-    left: 12px;
-    font-size: 14px;
-    color: var(--text-muted);
-    pointer-events: none;
-  }
-  .input-wrapper input {
+  .input-group input {
     width: 100%;
-    background: var(--card);
-    border: 1px solid var(--card-border);
+    background: var(--bg);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 14px;
-    padding: 11px 14px 11px 36px;
+    padding: 10px 14px;
     font-family: var(--font-mono);
     font-size: 13px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.15s;
   }
-  .input-wrapper input:focus {
+  .input-group input:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-glow);
+    border-color: var(--accent);
   }
-  .input-wrapper input::placeholder {
+  .input-group input::placeholder {
     color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 12px;
   }
 
-  .btn-row {
+  .actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
-    flex-wrap: wrap;
   }
 
   .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-ui);
+    font-family: var(--font-body);
     font-size: 14px;
     font-weight: 500;
-    padding: 11px 24px;
+    padding: 10px 20px;
     border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
+    transition: all 0.15s;
   }
+
   .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: var(--accent);
     color: #fff;
-    box-shadow: 0 2px 12px var(--primary-glow);
   }
   .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 24px var(--primary-glow);
-  }
-  .btn-primary:active {
-    transform: translateY(0);
+    background: #7C7CF5;
   }
   .btn-primary:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
   }
 
   .btn-secondary {
     background: transparent;
-    border: 1px solid var(--card-border);
+    border: 1px solid var(--border);
     color: var(--text-secondary);
   }
   .btn-secondary:hover {
-    border-color: var(--card-border-hover);
+    border-color: var(--border-hover);
     color: var(--text);
-    background: rgba(255,255,255,0.03);
   }
 
-  /* Status bar */
-  .status-bar {
+  /* Status */
+  .status {
+    font-size: 13px;
+    color: var(--text-secondary);
+    min-height: 22px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-    min-height: 24px;
   }
-  .status-bar .spinner {
-    width: 14px; height: 14px;
-    border: 2px solid var(--card-border);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    display: none;
-  }
-  .status-bar.loading .spinner { display: block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Error */
-  .error-msg {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    background: var(--unusable-bg);
-    border: 1px solid rgba(239, 68, 68, 0.25);
+  .error {
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
     border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    color: #FCA5A5;
+    padding: 10px 14px;
+    color: var(--red);
     font-size: 13px;
     margin-bottom: 16px;
     line-height: 1.5;
-    animation: slideIn 0.3s ease-out;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
   }
 
   /* Summary */
-  .summary-bar {
+  .summary {
     display: flex;
-    gap: 20px;
-    padding: 14px 0 16px;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--card-border);
+    gap: 24px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
+    flex-wrap: wrap;
   }
-  .summary-bar .stat {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  .summary .stat {
     font-size: 13px;
     color: var(--text-secondary);
   }
-  .summary-bar .stat strong { font-weight: 600; }
-  .summary-bar .stat.green { color: var(--usable); }
-  .summary-bar .stat.red { color: var(--unusable); }
-  .summary-bar .stat.amber { color: var(--testing); }
-  .summary-bar .stat.grey { color: var(--skipped); }
+  .summary .stat strong { font-weight: 600; }
 
-  /* Testing note */
-  .testing-note {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: center;
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .testing-note .progress-bar {
-    flex: 1;
-    max-width: 200px;
-    height: 3px;
-    background: var(--muted);
-    border-radius: 100px;
-    overflow: hidden;
-  }
-  .testing-note .progress-bar .fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    border-radius: 100px;
-    transition: width 0.3s;
-  }
-
-  /* Model cards */
+  /* Model list */
   .model-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .model-card {
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: var(--radius);
-    padding: 14px 18px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    transition: all 0.2s;
-    animation: cardIn 0.25s ease-out;
-  }
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: background 0.15s;
   }
   .model-card:hover {
-    border-color: var(--card-border-hover);
-    background: var(--card-hover);
+    background: rgba(255,255,255,0.02);
   }
 
   .model-card.usable {
-    border-color: rgba(34, 197, 94, 0.2);
-    background: var(--usable-bg);
-  }
-  .model-card.usable:hover {
-    border-color: rgba(34, 197, 94, 0.35);
+    background: var(--green-bg);
+    border-color: var(--green-border);
   }
   .model-card.unusable {
-    border-color: rgba(239, 68, 68, 0.15);
-    background: var(--unusable-bg);
-  }
-  .model-card.unusable:hover {
-    border-color: rgba(239, 68, 68, 0.3);
+    background: var(--red-bg);
+    border-color: var(--red-border);
   }
   .model-card.checking {
-    border-color: rgba(245, 158, 11, 0.15);
-    background: var(--testing-bg);
+    background: var(--amber-bg);
   }
   .model-card.skipped {
-    border-color: var(--card-border);
-    opacity: 0.6;
+    opacity: 0.45;
   }
 
   .model-icon {
-    width: 36px; height: 36px;
+    width: 28px;
+    height: 28px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 13px;
     flex-shrink: 0;
-    position: relative;
   }
-  .model-card.usable .model-icon {
-    background: rgba(34, 197, 94, 0.12);
-    box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
-  }
-  .model-card.unusable .model-icon {
-    background: rgba(239, 68, 68, 0.12);
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.1);
-  }
-  .model-card.checking .model-icon {
-    background: rgba(245, 158, 11, 0.12);
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.1);
-  }
-  .model-card.skipped .model-icon {
-    background: rgba(85, 93, 110, 0.1);
-  }
+  .model-card.usable .model-icon { background: var(--green-bg); }
+  .model-card.unusable .model-icon { background: var(--red-bg); }
+  .model-card.checking .model-icon { background: var(--amber-bg); }
+  .model-card.skipped .model-icon { background: var(--grey-bg); }
 
   .model-info {
     flex: 1;
@@ -447,54 +256,63 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text);
   }
   .model-meta {
     font-size: 11px;
     color: var(--text-muted);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-top: 1px;
   }
 
   .model-badge {
     font-size: 11px;
-    font-weight: 600;
-    padding: 4px 12px;
+    font-weight: 500;
+    padding: 3px 10px;
     border-radius: 100px;
     flex-shrink: 0;
-    letter-spacing: 0.3px;
   }
-  .model-card.usable .model-badge {
-    background: rgba(34, 197, 94, 0.12);
-    color: var(--usable);
+  .model-card.usable .model-badge { background: var(--green-bg); color: var(--green); }
+  .model-card.unusable .model-badge { background: var(--red-bg); color: var(--red); }
+  .model-card.checking .model-badge { background: var(--amber-bg); color: var(--amber); }
+  .model-card.skipped .model-badge { background: var(--grey-bg); color: var(--grey); }
+
+  /* Progress */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
   }
-  .model-card.unusable .model-badge {
-    background: rgba(239, 68, 68, 0.12);
-    color: var(--unusable);
+  .progress-bar {
+    flex: 1;
+    max-width: 180px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
   }
-  .model-card.checking .model-badge {
-    background: rgba(245, 158, 11, 0.12);
-    color: var(--testing);
-  }
-  .model-card.skipped .model-badge {
-    background: rgba(85, 93, 110, 0.12);
-    color: var(--skipped);
+  .progress-bar .fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    transition: width 0.2s;
   }
 
   /* How it works */
-  .how-section {
+  .how {
     margin-top: 48px;
     padding-top: 40px;
-    border-top: 1px solid var(--card-border);
+    border-top: 1px solid var(--border);
   }
-  .how-section h2 {
-    font-family: var(--font-mono);
-    font-size: 18px;
+  .how h2 {
+    font-family: var(--font-heading);
+    font-size: 17px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
-  .how-section > p {
+  .how .how-sub {
     color: var(--text-secondary);
     font-size: 14px;
     margin-bottom: 28px;
@@ -504,29 +322,22 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 640px) {
     .steps { grid-template-columns: 1fr; }
   }
   .step {
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: var(--radius);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 20px;
-    transition: border-color 0.2s;
   }
-  .step:hover { border-color: var(--card-border-hover); }
-  .step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    background: rgba(124,58,237,0.12);
-    color: var(--primary);
-    font-family: var(--font-mono);
-    font-size: 13px;
+  .step .num {
+    display: inline-block;
+    font-family: var(--font-heading);
     font-weight: 600;
-    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 10px;
   }
   .step h3 {
     font-size: 14px;
@@ -538,123 +349,110 @@
     color: var(--text-secondary);
     line-height: 1.5;
   }
+  .step code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
 
   /* Footer */
   footer {
+    margin-top: 48px;
     text-align: center;
-    padding: 40px 0 0;
     font-size: 12px;
     color: var(--text-muted);
   }
   footer a {
     color: var(--text-secondary);
     text-decoration: none;
-    transition: color 0.2s;
   }
-  footer a:hover { color: var(--primary); }
+  footer a:hover { color: var(--accent); }
 
   /* Empty state */
-  .empty-state {
+  .empty {
     text-align: center;
-    padding: 40px 20px;
+    padding: 48px 20px;
     color: var(--text-muted);
   }
-  .empty-state .icon {
-    font-size: 36px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-  .empty-state p {
+  .empty p {
     font-size: 14px;
     line-height: 1.6;
   }
 
-  /* Focus visible for keyboard nav */
+  /* Keyboard focus */
   :focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  @media (max-width: 500px) {
+    .container { padding: 32px 16px 60px; }
+    .tool-card { padding: 20px; }
   }
 </style>
 </head>
 <body>
 
-<div class="bg-orbs">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-</div>
-
 <div class="container">
   <header>
-    <div class="badge">
-      <span class="dot"></span>
-      Developer Tool
-    </div>
     <h1>Model Access Checker</h1>
     <p class="subtitle">
-      Paste your <strong>API Key</strong> + <strong>Base URL</strong> and we'll test every model with a real request to show you which ones actually work.
+      Paste your API key and base URL to discover which models you can actually use — tested with real requests, not just the model list.
     </p>
   </header>
 
-  <div class="tool-section">
-    <div class="input-grid">
-      <div class="input-group full">
-        <label for="baseUrl">Base URL</label>
-        <div class="input-wrapper">
-          <span class="icon">🔗</span>
-          <input type="url" id="baseUrl" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
-        </div>
-      </div>
-      <div class="input-group full">
-        <label for="apiKey">API Key</label>
-        <div class="input-wrapper">
-          <span class="icon">🔑</span>
-          <input type="password" id="apiKey" placeholder="sk-...">
-        </div>
-      </div>
+  <div class="tool-card">
+    <div class="input-group">
+      <label for="baseUrl">Base URL</label>
+      <input type="url" id="baseUrl" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
     </div>
-
-    <div class="btn-row">
-      <button class="btn btn-primary" id="checkBtn">🚀 Check Models</button>
+    <div class="input-group">
+      <label for="apiKey">API Key</label>
+      <input type="password" id="apiKey" placeholder="sk-...">
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="checkBtn">Check Models</button>
       <button class="btn btn-secondary" id="clearBtn">Clear</button>
     </div>
   </div>
 
-  <div id="status" class="status-bar"></div>
-  <div id="errorRegion"></div>
-  <div id="summary" class="summary-bar"></div>
+  <div id="status" class="status"></div>
+  <div id="error"></div>
+  <div id="summary" class="summary"></div>
   <div id="modelList" class="model-list">
-    <div class="empty-state" id="emptyState">
-      <div class="icon">🔍</div>
-      <p>Enter your API details above and hit <strong>Check Models</strong><br>to see which models your key has access to.</p>
+    <div class="empty">
+      <p>Enter your API details and click <strong>Check Models</strong> to get started.</p>
     </div>
   </div>
-  <div id="testingNote" class="testing-note"></div>
+  <div id="progressWrap" class="progress-wrap"></div>
 
-  <div class="how-section">
+  <div class="how">
     <h2>How it works</h2>
-    <p>Unlike tools that just list models from <code>/v1/models</code>, we actually test each one.</p>
+    <p class="how-sub">We don't just list models — we test each one with a real inference request.</p>
     <div class="steps">
       <div class="step">
-        <div class="step-num">1</div>
-        <h3>Fetch model list</h3>
-        <p>Queries <code>/v1/models</code> to discover every available model on your endpoint.</p>
+        <div class="num">01</div>
+        <h3>Fetch</h3>
+        <p>Queries <code>/v1/models</code> to discover every model available on your endpoint.</p>
       </div>
       <div class="step">
-        <div class="step-num">2</div>
-        <h3>Test each model</h3>
-        <p>Sends a real <code>max_tokens=1</code> request to every chat-capable model. If it responds, you can use it.</p>
+        <div class="num">02</div>
+        <h3>Test</h3>
+        <p>Sends a <code>max_tokens: 1</code> request to each chat-capable model. If it responds, you're good.</p>
       </div>
       <div class="step">
-        <div class="step-num">3</div>
-        <h3>See results</h3>
-        <p>Instantly see which models are ✅ usable, ❌ blocked, or ⏭ skipped — with error details for blocked ones.</p>
+        <div class="num">03</div>
+        <h3>Review</h3>
+        <p>See exactly which models are usable, blocked, or skipped — with error details for failures.</p>
       </div>
     </div>
   </div>
 
   <footer>
-    <p><a href="https://github.com/latest63/model-checker" target="_blank">GitHub</a> &middot; Open source &middot; Built with the <a href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank">UI UX Pro Max</a> design system</p>
+    <a href="https://github.com/latest63/model-checker" target="_blank">GitHub</a>
   </footer>
 </div>
 
@@ -664,23 +462,21 @@ const apiKeyInput = document.getElementById('apiKey');
 const checkBtn = document.getElementById('checkBtn');
 const clearBtn = document.getElementById('clearBtn');
 const statusEl = document.getElementById('status');
-const errorRegion = document.getElementById('errorRegion');
+const errorEl = document.getElementById('error');
 const summaryEl = document.getElementById('summary');
 const modelList = document.getElementById('modelList');
-const testingNote = document.getElementById('testingNote');
-const emptyState = document.getElementById('emptyState');
+const progressWrap = document.getElementById('progressWrap');
 
 let cancelled = false;
 let aborter = null;
 
 clearBtn.addEventListener('click', () => {
   apiKeyInput.value = '';
-  modelList.innerHTML = `<div class="empty-state" id="emptyState"><div class="icon">🔍</div><p>Enter your API details above and hit <strong>Check Models</strong><br>to see which models your key has access to.</p></div>`;
+  modelList.innerHTML = '<div class="empty"><p>Enter your API details and click <strong>Check Models</strong> to get started.</p></div>';
   summaryEl.innerHTML = '';
-  statusEl.className = 'status-bar';
   statusEl.textContent = '';
-  errorRegion.innerHTML = '';
-  testingNote.textContent = '';
+  errorEl.innerHTML = '';
+  progressWrap.innerHTML = '';
   cancelled = true;
   if (aborter) aborter.abort();
 });
@@ -688,12 +484,11 @@ clearBtn.addEventListener('click', () => {
 checkBtn.addEventListener('click', runCheck);
 
 function showError(msg) {
-  errorRegion.innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+  errorEl.innerHTML = `<div class="error">${msg}</div>`;
 }
 
-function normalizeBaseUrl(url) {
-  url = url.replace(/\/+$/, '');
-  return url;
+function normalizeUrl(url) {
+  return url.replace(/\/+$/, '');
 }
 
 async function runCheck() {
@@ -705,20 +500,18 @@ async function runCheck() {
     return;
   }
 
-  baseUrl = normalizeBaseUrl(baseUrl);
+  baseUrl = normalizeUrl(baseUrl);
   cancelled = false;
   aborter = new AbortController();
 
   checkBtn.disabled = true;
   modelList.innerHTML = '';
   summaryEl.innerHTML = '';
-  errorRegion.innerHTML = '';
-  testingNote.textContent = '';
-  statusEl.className = 'status-bar loading';
-  statusEl.innerHTML = '<span class="spinner"></span><span>Fetching model list...</span>';
+  errorEl.innerHTML = '';
+  progressWrap.innerHTML = '';
+  statusEl.textContent = 'Fetching model list...';
 
   try {
-    // Step 1: fetch model list
     const modelsRes = await fetch(`${baseUrl}/models`, {
       headers: { 'Authorization': `Bearer ${apiKey}` },
       signal: aborter.signal
@@ -746,26 +539,18 @@ async function runCheck() {
     const modelIds = models.map(m => typeof m === 'string' ? m : m.id);
 
     if (modelIds.length === 0) {
-      statusEl.className = 'status-bar';
-      statusEl.textContent = '⚠️ No models returned by this endpoint.';
+      statusEl.textContent = 'No models returned by this endpoint.';
       checkBtn.disabled = false;
       return;
     }
 
-    statusEl.className = 'status-bar loading';
-    statusEl.innerHTML = `<span class="spinner"></span><span>Found ${modelIds.length} models — testing each one...</span>`;
-
-    // Testing note with progress bar
-    const progressHtml = `
-      <span>🧪 Testing each model with a real request</span>
-      <div class="progress-bar">
-        <div class="fill" id="progressFill" style="width: 0%"></div>
-      </div>
-      <span id="progressText">0/${modelIds.length}</span>
+    statusEl.textContent = `Found ${modelIds.length} models — testing...`;
+    progressWrap.innerHTML = `
+      <span>Testing each model with a real request</span>
+      <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+      <span id="progressCount">0/${modelIds.length}</span>
     `;
-    testingNote.innerHTML = progressHtml;
 
-    // Render all cards as checking state
     const results = new Map();
     for (const m of models) {
       const id = typeof m === 'string' ? m : m.id;
@@ -773,32 +558,20 @@ async function runCheck() {
     }
     renderResults(results);
 
-    // Step 2: Test each model
-    const testBody = {
-      model: '',
-      messages: [{ role: 'user', content: 'hi' }],
-      max_tokens: 1,
-      stream: false
-    };
-
-    let usableCount = 0;
-    let unusableCount = 0;
-    let skippedCount = 0;
+    const testBody = { model: '', messages: [{ role: 'user', content: 'hi' }], max_tokens: 1, stream: false };
+    let usable = 0, blocked = 0, skipped = 0, done = 0;
     const errors = [];
-    let modelNumber = 0;
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
 
     for (const m of models) {
       if (cancelled) break;
       const id = typeof m === 'string' ? m : m.id;
-      modelNumber++;
+      done++;
 
-      // Update progress
-      if (progressFill) progressFill.style.width = `${(modelNumber / modelIds.length) * 100}%`;
-      if (progressText) progressText.textContent = `${modelNumber}/${modelIds.length}`;
+      const pf = document.getElementById('progressFill');
+      const pc = document.getElementById('progressCount');
+      if (pf) pf.style.width = `${(done / modelIds.length) * 100}%`;
+      if (pc) pc.textContent = `${done}/${modelIds.length}`;
 
-      // Skip known non-chat models
       const lower = id.toLowerCase();
       if (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
           lower.includes('davinci') || lower.includes('babbage') || lower.includes('curie') ||
@@ -806,102 +579,78 @@ async function runCheck() {
           lower.includes('009') || lower.includes('002') || lower.includes('001') ||
           lower.includes('knn') || lower.includes('rerank')) {
         results.set(id, { status: 'skipped', reason: 'non-chat model' });
-        skippedCount++;
-        updateCard(id, 'skipped', '⏭ Skipped');
-        statusEl.innerHTML = `<span class="spinner"></span><span>${modelNumber}/${modelIds.length} — skipped ${id}</span>`;
+        skipped++;
+        updateCard(id, 'skipped', 'Skipped');
+        statusEl.textContent = `${done}/${modelIds.length} — skipped ${id}`;
         continue;
       }
 
-      statusEl.innerHTML = `<span class="spinner"></span><span>${modelNumber}/${modelIds.length} — testing <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${id}</code></span>`;
-      updateCard(id, 'checking', 'Testing…');
+      statusEl.textContent = `${done}/${modelIds.length} — testing ${id}`;
+      updateCard(id, 'checking', 'Testing');
 
       try {
         testBody.model = id;
         const testRes = await fetch(`${baseUrl}/chat/completions`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(testBody),
           signal: aborter.signal
         });
 
         if (testRes.ok) {
           results.set(id, { status: 'usable' });
-          usableCount++;
-          updateCard(id, 'usable', '✅ Usable');
+          usable++;
+          updateCard(id, 'usable', 'Usable');
         } else {
           const errText = await testRes.text().catch(() => '');
           let reason = `HTTP ${testRes.status}`;
           if (errText) {
-            try {
-              const errJson = JSON.parse(errText);
-              reason = errJson.error?.message || reason;
-            } catch { reason = errText.slice(0, 150); }
+            try { const j = JSON.parse(errText); reason = j.error?.message || reason; }
+            catch { reason = errText.slice(0, 150); }
           }
           results.set(id, { status: 'unusable', reason });
-          unusableCount++;
-          updateCard(id, 'unusable', '❌ Blocked');
+          blocked++;
+          updateCard(id, 'unusable', 'Blocked');
           errors.push({ id, reason });
         }
       } catch (err) {
         if (err.name === 'AbortError') break;
         results.set(id, { status: 'unusable', reason: err.message });
-        unusableCount++;
-        updateCard(id, 'unusable', '❌ Error');
+        blocked++;
+        updateCard(id, 'unusable', 'Error');
         errors.push({ id, reason: err.message });
       }
     }
 
     if (cancelled) {
-      statusEl.className = 'status-bar';
-      statusEl.textContent = '⏹ Cancelled.';
+      statusEl.textContent = 'Cancelled.';
       checkBtn.disabled = false;
       return;
     }
 
-    // Summary
-    const total = modelIds.length;
     summaryEl.innerHTML = `
-      <span class="stat">Total: <strong>${total}</strong></span>
-      <span class="stat green">✅ Usable: <strong>${usableCount}</strong></span>
-      <span class="stat red">❌ Blocked: <strong>${unusableCount}</strong></span>
-      <span class="stat grey">⏭ Skipped: <strong>${skippedCount}</strong></span>
+      <span class="stat">Total: <strong>${modelIds.length}</strong></span>
+      <span class="stat" style="color:var(--green)">Usable: <strong>${usable}</strong></span>
+      <span class="stat" style="color:var(--red)">Blocked: <strong>${blocked}</strong></span>
+      <span class="stat" style="color:var(--grey)">Skipped: <strong>${skipped}</strong></span>
     `;
 
-    statusEl.className = 'status-bar';
-    if (usableCount > 0) {
-      statusEl.innerHTML = `✅ Done! <strong style="color:var(--usable);font-weight:600">${usableCount}</strong> model${usableCount > 1 ? 's' : ''} you can actually use.`;
-    } else if (unusableCount > 0) {
-      statusEl.innerHTML = '😬 None of the chat models responded. Your key may not have access to any of them.';
-    } else {
-      statusEl.textContent = '⚠️ No chat models found to test.';
-    }
+    statusEl.textContent = usable > 0
+      ? `${usable} model${usable > 1 ? 's' : ''} usable.`
+      : blocked > 0
+        ? 'No usable models found for this key.'
+        : 'No chat models to test.';
 
-    testingNote.innerHTML = usableCount > 0
-      ? `<span>✅ <strong style="color:var(--usable)">${usableCount}</strong> usable · <strong style="color:var(--unusable)">${unusableCount}</strong> blocked · <strong style="color:var(--skipped)">${skippedCount}</strong> skipped</span>`
-      : '';
+    progressWrap.innerHTML = '';
 
-    // Show errors summary
     if (errors.length > 0) {
-      const uniqueErrors = [...new Set(errors.map(e => e.reason))];
-      if (uniqueErrors.length <= 3) {
-        showError(uniqueErrors.join(' | '));
-      } else {
-        const top = uniqueErrors.slice(0, 3);
-        showError(`${top.join(' | ')} (and ${uniqueErrors.length - 3} more)`);
-      }
+      const unique = [...new Set(errors.map(e => e.reason))];
+      if (unique.length <= 3) showError(unique.join(' | '));
+      else showError(unique.slice(0, 3).join(' | ') + ` (and ${unique.length - 3} more)`);
     }
   } catch (err) {
-    if (err.name === 'AbortError') {
-      statusEl.className = 'status-bar';
-      statusEl.textContent = '⏹ Cancelled.';
-    } else {
-      showError(err.message);
-      statusEl.className = 'status-bar';
-      statusEl.textContent = '❌ Failed.';
-    }
+    if (err.name === 'AbortError') statusEl.textContent = 'Cancelled.';
+    else { showError(err.message); statusEl.textContent = 'Failed.'; }
   }
 
   checkBtn.disabled = false;
@@ -909,49 +658,37 @@ async function runCheck() {
 
 function renderResults(results) {
   modelList.innerHTML = '';
-  for (const [id, data] of results) {
+  for (const [id] of results) {
     const card = document.createElement('div');
     card.className = 'model-card checking';
-    card.id = `card-${cssEscape(id)}`;
+    card.id = `c-${cssEsc(id)}`;
     card.innerHTML = `
-      <div class="model-icon">⏳</div>
-      <div class="model-info">
-        <div class="model-name">${escapeHtml(id)}</div>
-        <div class="model-meta">checking...</div>
-      </div>
-      <span class="model-badge">Testing…</span>
+      <div class="model-icon">⌛</div>
+      <div class="model-info"><div class="model-name">${esc(id)}</div><div class="model-meta">queued</div></div>
+      <span class="model-badge">Waiting</span>
     `;
     modelList.appendChild(card);
   }
 }
 
-function updateCard(id, className, badgeText) {
-  const safeId = `card-${cssEscape(id)}`;
-  const card = document.getElementById(safeId);
+function updateCard(id, cls, badge) {
+  const card = document.getElementById(`c-${cssEsc(id)}`);
   if (!card) return;
-
-  card.className = `model-card ${className}`;
-  const iconMap = {
-    usable: '✅',
-    unusable: '❌',
-    checking: '⏳',
-    skipped: '⏭'
-  };
-  const iconEl = card.querySelector('.model-icon');
-  if (iconEl) iconEl.textContent = iconMap[className] || '•';
-  const badgeEl = card.querySelector('.model-badge');
-  if (badgeEl) badgeEl.textContent = badgeText;
+  card.className = `model-card ${cls}`;
+  const icons = { usable: '✓', unusable: '✗', checking: '⌛', skipped: '–' };
+  const q = card.querySelector('.model-icon');
+  if (q) q.textContent = icons[cls] || '•';
+  const b = card.querySelector('.model-badge');
+  if (b) b.textContent = badge;
+  const m = card.querySelector('.model-meta');
+  if (m && cls === 'unusable') m.textContent = 'blocked';
+  else if (m && cls === 'usable') m.textContent = 'responded';
+  else if (m && cls === 'skipped') m.textContent = 'non-chat';
+  else if (m) m.textContent = 'testing';
 }
 
-function cssEscape(str) {
-  return str.replace(/[^\w-]/g, '_');
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
+function cssEsc(s) { return s.replace(/[^\w-]/g, '_'); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 </script>
 </body>
 </html>
