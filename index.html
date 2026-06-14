@@ -4,145 +4,658 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Model Access Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #7C3AED;
+    --primary-hover: #8B5CF6;
+    --primary-glow: rgba(124, 58, 237, 0.35);
+    --secondary: #6366F1;
+    --accent: #06B6D4;
+    --accent-glow: rgba(6, 182, 212, 0.25);
+    --bg: #07070D;
+    --bg-elevated: #0C0C18;
+    --card: #12121F;
+    --card-hover: #181830;
+    --card-border: #1E1E35;
+    --card-border-hover: #2E2E50;
+    --text: #E2E8F0;
+    --text-secondary: #8B95A9;
+    --text-muted: #555D6E;
+    --muted: #1E1E35;
+    --usable: #22C55E;
+    --usable-bg: rgba(34, 197, 94, 0.08);
+    --unusable: #EF4444;
+    --unusable-bg: rgba(239, 68, 68, 0.08);
+    --testing: #F59E0B;
+    --testing-bg: rgba(245, 158, 11, 0.08);
+    --skipped: #555D6E;
+    --skipped-bg: rgba(85, 93, 110, 0.08);
+    --font-ui: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
   body {
-    font-family: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
-    background: #0d0d0d;
-    color: #e0e0e0;
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    padding: 40px 16px;
+    overflow-x: hidden;
   }
-  .container { width: 100%; max-width: 720px; }
-  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-  .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
 
-  /* Input section */
-  .inputs { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  /* Gradient background orbs */
+  .bg-orbs {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bg-orbs .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.3;
+  }
+  .bg-orbs .orb-1 {
+    width: 600px; height: 600px;
+    background: var(--primary);
+    top: -200px; right: -150px;
+  }
+  .bg-orbs .orb-2 {
+    width: 400px; height: 400px;
+    background: var(--accent);
+    bottom: -100px; left: -100px;
+    opacity: 0.15;
+  }
+  .bg-orbs .orb-3 {
+    width: 350px; height: 350px;
+    background: var(--secondary);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.08;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.1));
+    border: 1px solid rgba(124,58,237,0.25);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  h1 {
+    font-family: var(--font-mono);
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #E2E8F0 0%, #A5B4FC 50%, #7C3AED 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: var(--text-secondary);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  .subtitle strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Tool section */
+  .tool-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(12px);
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 600px) {
+    .input-grid { grid-template-columns: 1fr; }
+    .tool-section { padding: 20px; }
+    .container { padding: 24px 12px 60px; }
+  }
+
   .input-group {
-    display: flex; flex-direction: column; gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
+  .input-group.full { grid-column: 1 / -1; }
+
   .input-group label {
-    font-size: 12px; font-weight: 500; color: #aaa;
-    text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
   }
-  .input-group input {
-    background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
-    color: #e0e0e0; font-size: 14px; padding: 10px 14px;
-    font-family: 'Menlo', 'JetBrains Mono', monospace;
-    transition: border-color 0.15s;
-  }
-  .input-group input:focus {
-    outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-  }
-  .input-group input::placeholder { color: #555; }
 
-  .btn-row { display: flex; gap: 8px; align-items: center; }
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-wrapper .icon {
+    position: absolute;
+    left: 12px;
+    font-size: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .input-wrapper input {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 14px;
+    padding: 11px 14px 11px 36px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+  .input-wrapper input::placeholder {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
   .btn {
-    background: #6366f1; color: #fff; border: none; border-radius: 8px;
-    font-size: 14px; font-weight: 500; padding: 10px 24px; cursor: pointer;
-    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 11px 24px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
   }
-  .btn:hover { background: #5558e6; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-secondary {
-    background: transparent; border: 1px solid #333; color: #aaa;
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+    box-shadow: 0 2px 12px var(--primary-glow);
   }
-  .btn-secondary:hover { border-color: #555; color: #e0e0e0; }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 24px var(--primary-glow);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
 
-  .status { font-size: 13px; color: #888; margin-bottom: 16px; min-height: 20px; }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+  }
+  .btn-secondary:hover {
+    border-color: var(--card-border-hover);
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    min-height: 24px;
+  }
+  .status-bar .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--card-border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  .status-bar.loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Error */
+  .error-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--unusable-bg);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    color: #FCA5A5;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Summary */
+  .summary-bar {
+    display: flex;
+    gap: 20px;
+    padding: 14px 0 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--card-border);
+    margin-bottom: 16px;
+  }
+  .summary-bar .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .summary-bar .stat strong { font-weight: 600; }
+  .summary-bar .stat.green { color: var(--usable); }
+  .summary-bar .stat.red { color: var(--unusable); }
+  .summary-bar .stat.amber { color: var(--testing); }
+  .summary-bar .stat.grey { color: var(--skipped); }
+
+  /* Testing note */
+  .testing-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .testing-note .progress-bar {
+    flex: 1;
+    max-width: 200px;
+    height: 3px;
+    background: var(--muted);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .testing-note .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 100px;
+    transition: width 0.3s;
+  }
 
   /* Model cards */
-  .model-list { display: flex; flex-direction: column; gap: 8px; }
+  .model-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
   .model-card {
-    background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
-    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-    transition: border-color 0.2s;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.2s;
+    animation: cardIn 0.25s ease-out;
   }
-  .model-card.usable { border-left: 3px solid #22c55e; }
-  .model-card.unusable { border-left: 3px solid #ef4444; }
-  .model-card.checking { border-left: 3px solid #f59e0b; opacity: 0.7; }
-  .model-card.skipped { border-left: 3px solid #555; opacity: 0.5; }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .model-card:hover {
+    border-color: var(--card-border-hover);
+    background: var(--card-hover);
+  }
+
+  .model-card.usable {
+    border-color: rgba(34, 197, 94, 0.2);
+    background: var(--usable-bg);
+  }
+  .model-card.usable:hover {
+    border-color: rgba(34, 197, 94, 0.35);
+  }
+  .model-card.unusable {
+    border-color: rgba(239, 68, 68, 0.15);
+    background: var(--unusable-bg);
+  }
+  .model-card.unusable:hover {
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  .model-card.checking {
+    border-color: rgba(245, 158, 11, 0.15);
+    background: var(--testing-bg);
+  }
+  .model-card.skipped {
+    border-color: var(--card-border);
+    opacity: 0.6;
+  }
 
   .model-icon {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; flex-shrink: 0;
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    position: relative;
   }
-  .usable .model-icon { background: rgba(34,197,94,0.15); }
-  .unusable .model-icon { background: rgba(239,68,68,0.15); }
-  .checking .model-icon { background: rgba(245,158,11,0.15); }
-  .skipped .model-icon { background: rgba(85,85,85,0.15); }
+  .model-card.usable .model-icon {
+    background: rgba(34, 197, 94, 0.12);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+  }
+  .model-card.unusable .model-icon {
+    background: rgba(239, 68, 68, 0.12);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.1);
+  }
+  .model-card.checking .model-icon {
+    background: rgba(245, 158, 11, 0.12);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.1);
+  }
+  .model-card.skipped .model-icon {
+    background: rgba(85, 93, 110, 0.1);
+  }
 
-  .model-info { flex: 1; min-width: 0; }
-  .model-name {
-    font-size: 14px; font-weight: 500; font-family: 'Menlo', 'JetBrains Mono', monospace;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  .model-info {
+    flex: 1;
+    min-width: 0;
   }
-  .model-meta { font-size: 11px; color: #666; margin-top: 2px; }
+  .model-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .model-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   .model-badge {
-    font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 100px;
     flex-shrink: 0;
+    letter-spacing: 0.3px;
   }
-  .usable .model-badge { background: rgba(34,197,94,0.15); color: #22c55e; }
-  .unusable .model-badge { background: rgba(239,68,68,0.15); color: #ef4444; }
-  .checking .model-badge { background: rgba(245,158,11,0.15); color: #f59e0b; }
-  .skipped .model-badge { background: rgba(85,85,85,0.15); color: #666; }
-
-  .summary-bar {
-    display: flex; gap: 16px; padding: 12px 0; font-size: 13px;
+  .model-card.usable .model-badge {
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--usable);
   }
-  .summary-bar span { color: #888; }
-  .summary-bar .green { color: #22c55e; font-weight: 600; }
-  .summary-bar .red { color: #ef4444; font-weight: 600; }
-  .summary-bar .yellow { color: #f59e0b; font-weight: 600; }
+  .model-card.unusable .model-badge {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--unusable);
+  }
+  .model-card.checking .model-badge {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--testing);
+  }
+  .model-card.skipped .model-badge {
+    background: rgba(85, 93, 110, 0.12);
+    color: var(--skipped);
+  }
 
-  .error-msg {
-    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 8px; padding: 12px 16px; color: #fca5a5; font-size: 13px;
+  /* How it works */
+  .how-section {
+    margin-top: 48px;
+    padding-top: 40px;
+    border-top: 1px solid var(--card-border);
+  }
+  .how-section h2 {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .how-section > p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 700px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .step:hover { border-color: var(--card-border-hover); }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(124,58,237,0.12);
+    color: var(--primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
     margin-bottom: 12px;
   }
-
-  .testing-note {
-    font-size: 12px; color: #666; margin-top: 12px; text-align: center;
+  .step h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .step p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
   }
 
-  @media (max-width: 500px) {
-    body { padding: 20px 12px; }
-    .model-card { flex-wrap: wrap; }
-    .model-badge { font-size: 10px; padding: 3px 8px; }
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 40px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  footer a:hover { color: var(--primary); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  .empty-state p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Focus visible for keyboard nav */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🧪 Model Access Checker</h1>
-  <p class="subtitle">Paste an API key + base URL to see which models you can actually use</p>
 
-  <div class="inputs">
-    <div class="input-group">
-      <label for="baseUrl">Base URL</label>
-      <input type="url" id="baseUrl" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<div class="container">
+  <header>
+    <div class="badge">
+      <span class="dot"></span>
+      Developer Tool
     </div>
-    <div class="input-group">
-      <label for="apiKey">API Key</label>
-      <input type="password" id="apiKey" placeholder="sk-...">
+    <h1>Model Access Checker</h1>
+    <p class="subtitle">
+      Paste your <strong>API Key</strong> + <strong>Base URL</strong> and we'll test every model with a real request to show you which ones actually work.
+    </p>
+  </header>
+
+  <div class="tool-section">
+    <div class="input-grid">
+      <div class="input-group full">
+        <label for="baseUrl">Base URL</label>
+        <div class="input-wrapper">
+          <span class="icon">🔗</span>
+          <input type="url" id="baseUrl" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+        </div>
+      </div>
+      <div class="input-group full">
+        <label for="apiKey">API Key</label>
+        <div class="input-wrapper">
+          <span class="icon">🔑</span>
+          <input type="password" id="apiKey" placeholder="sk-...">
+        </div>
+      </div>
     </div>
+
     <div class="btn-row">
-      <button class="btn" id="checkBtn">Check Models</button>
+      <button class="btn btn-primary" id="checkBtn">🚀 Check Models</button>
       <button class="btn btn-secondary" id="clearBtn">Clear</button>
     </div>
   </div>
 
-  <div id="status" class="status"></div>
+  <div id="status" class="status-bar"></div>
   <div id="errorRegion"></div>
   <div id="summary" class="summary-bar"></div>
-  <div id="modelList" class="model-list"></div>
+  <div id="modelList" class="model-list">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🔍</div>
+      <p>Enter your API details above and hit <strong>Check Models</strong><br>to see which models your key has access to.</p>
+    </div>
+  </div>
   <div id="testingNote" class="testing-note"></div>
+
+  <div class="how-section">
+    <h2>How it works</h2>
+    <p>Unlike tools that just list models from <code>/v1/models</code>, we actually test each one.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Fetch model list</h3>
+        <p>Queries <code>/v1/models</code> to discover every available model on your endpoint.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Test each model</h3>
+        <p>Sends a real <code>max_tokens=1</code> request to every chat-capable model. If it responds, you can use it.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>See results</h3>
+        <p>Instantly see which models are ✅ usable, ❌ blocked, or ⏭ skipped — with error details for blocked ones.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p><a href="https://github.com/latest63/model-checker" target="_blank">GitHub</a> &middot; Open source &middot; Built with the <a href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank">UI UX Pro Max</a> design system</p>
+  </footer>
 </div>
 
 <script>
@@ -155,14 +668,16 @@ const errorRegion = document.getElementById('errorRegion');
 const summaryEl = document.getElementById('summary');
 const modelList = document.getElementById('modelList');
 const testingNote = document.getElementById('testingNote');
+const emptyState = document.getElementById('emptyState');
 
 let cancelled = false;
 let aborter = null;
 
 clearBtn.addEventListener('click', () => {
   apiKeyInput.value = '';
-  modelList.innerHTML = '';
+  modelList.innerHTML = `<div class="empty-state" id="emptyState"><div class="icon">🔍</div><p>Enter your API details above and hit <strong>Check Models</strong><br>to see which models your key has access to.</p></div>`;
   summaryEl.innerHTML = '';
+  statusEl.className = 'status-bar';
   statusEl.textContent = '';
   errorRegion.innerHTML = '';
   testingNote.textContent = '';
@@ -173,7 +688,7 @@ clearBtn.addEventListener('click', () => {
 checkBtn.addEventListener('click', runCheck);
 
 function showError(msg) {
-  errorRegion.innerHTML = `<div class="error-msg">⚠ ${msg}</div>`;
+  errorRegion.innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
 }
 
 function normalizeBaseUrl(url) {
@@ -199,7 +714,8 @@ async function runCheck() {
   summaryEl.innerHTML = '';
   errorRegion.innerHTML = '';
   testingNote.textContent = '';
-  statusEl.textContent = '⏳ Fetching model list...';
+  statusEl.className = 'status-bar loading';
+  statusEl.innerHTML = '<span class="spinner"></span><span>Fetching model list...</span>';
 
   try {
     // Step 1: fetch model list
@@ -227,32 +743,39 @@ async function runCheck() {
       throw new Error('Unexpected response format from /v1/models');
     }
 
-    // Filter to chat-capable models (skip embeddings, TTS, etc.)
-    // We'll test everything, but group chat models first
     const modelIds = models.map(m => typeof m === 'string' ? m : m.id);
 
     if (modelIds.length === 0) {
-      statusEl.textContent = '⚠ No models returned by this endpoint.';
+      statusEl.className = 'status-bar';
+      statusEl.textContent = '⚠️ No models returned by this endpoint.';
       checkBtn.disabled = false;
       return;
     }
 
-    statusEl.textContent = `📋 Found ${modelIds.length} models — testing each one...`;
-    testingNote.textContent = 'Each model gets a tiny test prompt (1 token reply) to verify actual access.';
+    statusEl.className = 'status-bar loading';
+    statusEl.innerHTML = `<span class="spinner"></span><span>Found ${modelIds.length} models — testing each one...</span>`;
 
-    // Render all cards as "checking" state
+    // Testing note with progress bar
+    const progressHtml = `
+      <span>🧪 Testing each model with a real request</span>
+      <div class="progress-bar">
+        <div class="fill" id="progressFill" style="width: 0%"></div>
+      </div>
+      <span id="progressText">0/${modelIds.length}</span>
+    `;
+    testingNote.innerHTML = progressHtml;
+
+    // Render all cards as checking state
     const results = new Map();
-
     for (const m of models) {
       const id = typeof m === 'string' ? m : m.id;
       results.set(id, { status: 'pending' });
     }
-
     renderResults(results);
 
     // Step 2: Test each model
     const testBody = {
-      model: '',  // filled per-request
+      model: '',
       messages: [{ role: 'user', content: 'hi' }],
       max_tokens: 1,
       stream: false
@@ -263,13 +786,19 @@ async function runCheck() {
     let skippedCount = 0;
     const errors = [];
     let modelNumber = 0;
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
 
     for (const m of models) {
       if (cancelled) break;
       const id = typeof m === 'string' ? m : m.id;
       modelNumber++;
 
-      // Skip known non-chat models to save time
+      // Update progress
+      if (progressFill) progressFill.style.width = `${(modelNumber / modelIds.length) * 100}%`;
+      if (progressText) progressText.textContent = `${modelNumber}/${modelIds.length}`;
+
+      // Skip known non-chat models
       const lower = id.toLowerCase();
       if (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
           lower.includes('davinci') || lower.includes('babbage') || lower.includes('curie') ||
@@ -278,13 +807,13 @@ async function runCheck() {
           lower.includes('knn') || lower.includes('rerank')) {
         results.set(id, { status: 'skipped', reason: 'non-chat model' });
         skippedCount++;
-        updateCard(id, 'skipped', 'Skipped');
-        statusEl.textContent = `📋 ${modelNumber}/${modelIds.length} — skipped ${id} (non-chat)`;
+        updateCard(id, 'skipped', '⏭ Skipped');
+        statusEl.innerHTML = `<span class="spinner"></span><span>${modelNumber}/${modelIds.length} — skipped ${id}</span>`;
         continue;
       }
 
-      statusEl.textContent = `🧪 ${modelNumber}/${modelIds.length} — testing ${id}...`;
-      updateCard(id, 'checking', 'Testing...');
+      statusEl.innerHTML = `<span class="spinner"></span><span>${modelNumber}/${modelIds.length} — testing <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${id}</code></span>`;
+      updateCard(id, 'checking', 'Testing…');
 
       try {
         testBody.model = id;
@@ -326,6 +855,7 @@ async function runCheck() {
     }
 
     if (cancelled) {
+      statusEl.className = 'status-bar';
       statusEl.textContent = '⏹ Cancelled.';
       checkBtn.disabled = false;
       return;
@@ -333,22 +863,27 @@ async function runCheck() {
 
     // Summary
     const total = modelIds.length;
-    const summaryHTML = `
-      <span>Total: <strong>${total}</strong></span>
-      <span class="green">✅ Usable: ${usableCount}</span>
-      <span class="red">❌ Blocked: ${unusableCount}</span>
-      <span style="color:#666">⏭ Skipped: ${skippedCount}</span>
+    summaryEl.innerHTML = `
+      <span class="stat">Total: <strong>${total}</strong></span>
+      <span class="stat green">✅ Usable: <strong>${usableCount}</strong></span>
+      <span class="stat red">❌ Blocked: <strong>${unusableCount}</strong></span>
+      <span class="stat grey">⏭ Skipped: <strong>${skippedCount}</strong></span>
     `;
-    summaryEl.innerHTML = summaryHTML;
-    statusEl.textContent = usableCount > 0
-      ? `✅ Done! ${usableCount} model${usableCount > 1 ? 's' : ''} you can actually use.`
-      : unusableCount > 0
-        ? '😬 None of the chat models responded. Your key may not have access to any of them.'
-        : '⚠ No chat models found to test.';
 
-    testingNote.textContent = '';
+    statusEl.className = 'status-bar';
+    if (usableCount > 0) {
+      statusEl.innerHTML = `✅ Done! <strong style="color:var(--usable);font-weight:600">${usableCount}</strong> model${usableCount > 1 ? 's' : ''} you can actually use.`;
+    } else if (unusableCount > 0) {
+      statusEl.innerHTML = '😬 None of the chat models responded. Your key may not have access to any of them.';
+    } else {
+      statusEl.textContent = '⚠️ No chat models found to test.';
+    }
 
-    // Show errors summary if any unusable
+    testingNote.innerHTML = usableCount > 0
+      ? `<span>✅ <strong style="color:var(--usable)">${usableCount}</strong> usable · <strong style="color:var(--unusable)">${unusableCount}</strong> blocked · <strong style="color:var(--skipped)">${skippedCount}</strong> skipped</span>`
+      : '';
+
+    // Show errors summary
     if (errors.length > 0) {
       const uniqueErrors = [...new Set(errors.map(e => e.reason))];
       if (uniqueErrors.length <= 3) {
@@ -360,9 +895,11 @@ async function runCheck() {
     }
   } catch (err) {
     if (err.name === 'AbortError') {
+      statusEl.className = 'status-bar';
       statusEl.textContent = '⏹ Cancelled.';
     } else {
       showError(err.message);
+      statusEl.className = 'status-bar';
       statusEl.textContent = '❌ Failed.';
     }
   }
@@ -382,7 +919,7 @@ function renderResults(results) {
         <div class="model-name">${escapeHtml(id)}</div>
         <div class="model-meta">checking...</div>
       </div>
-      <span class="model-badge">Testing...</span>
+      <span class="model-badge">Testing…</span>
     `;
     modelList.appendChild(card);
   }
@@ -400,8 +937,10 @@ function updateCard(id, className, badgeText) {
     checking: '⏳',
     skipped: '⏭'
   };
-  card.querySelector('.model-icon').textContent = iconMap[className] || '•';
-  card.querySelector('.model-badge').textContent = badgeText;
+  const iconEl = card.querySelector('.model-icon');
+  if (iconEl) iconEl.textContent = iconMap[className] || '•';
+  const badgeEl = card.querySelector('.model-badge');
+  if (badgeEl) badgeEl.textContent = badgeText;
 }
 
 function cssEscape(str) {
