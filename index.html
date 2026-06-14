@@ -640,6 +640,9 @@ async function runCheck() {
   cancelled = false;
   aborter = new AbortController();
 
+  // Use CORS proxy for browser-based requests
+  const corsProxy = 'https://api.allorigins.win/raw?url=';
+
   checkBtn.disabled = true;
   modelList.innerHTML = '';
   summaryEl.innerHTML = '';
@@ -648,7 +651,7 @@ async function runCheck() {
   statusEl.textContent = 'Fetching model list...';
 
   try {
-    const modelsRes = await fetch(`${baseUrl}/models`, {
+    const modelsRes = await fetch(`${corsProxy}${encodeURIComponent(baseUrl + '/models')}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` },
       signal: aborter.signal
     });
@@ -724,7 +727,7 @@ async function runCheck() {
 
       try {
         testBody.model = id;
-        const testRes = await fetch(`${baseUrl}/chat/completions`, {
+        const testRes = await fetch(`${corsProxy}${encodeURIComponent(baseUrl + '/chat/completions')}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(testBody),
