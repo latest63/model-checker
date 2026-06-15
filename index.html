@@ -3,7 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Model Access Checker</title>
+<meta name="description" content="Check which AI models your API key can actually use. Usable LLM tests listed models with real requests and explains usable, blocked, and skipped results in plain English.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://usable-llm.vercel.app/">
+<title>Usable LLM — Model Access Checker</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Usable LLM — Model Access Checker">
+<meta property="og:description" content="See which models your key can really access — not just which ones appear in /models.">
+<meta property="og:url" content="https://usable-llm.vercel.app/">
+<meta property="og:image" content="https://usable-llm.vercel.app/og-image.svg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Usable LLM — Model Access Checker">
+<meta name="twitter:description" content="Test model access with real requests and get clear usable vs blocked results.">
+<meta name="twitter:image" content="https://usable-llm.vercel.app/og-image.svg">
+<link rel="icon" href="/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
@@ -110,11 +123,11 @@
     text-decoration: none;
     letter-spacing: -0.01em;
   }
-  nav .brand svg {
+  nav .brand img {
     width: 20px;
     height: 20px;
-    color: var(--accent);
     flex-shrink: 0;
+    display: block;
   }
 
   .nav-actions {
@@ -496,12 +509,8 @@
 <nav>
   <div class="inner">
     <a href="/" class="brand">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10 2L2 6v8l8 4 8-4V6l-8-4z"/>
-        <path d="M2 6l8 4 8-4"/>
-        <path d="M10 18V10"/>
-      </svg>
-      Model Checker
+      <img src="/logo-mark.svg" alt="Usable LLM logo" width="20" height="20">
+      Usable LLM
     </a>
     <div class="nav-actions">
       <a href="https://github.com/latest63/model-checker" class="nav-link" target="_blank">GitHub</a>
@@ -516,9 +525,9 @@
 
 <div class="container">
   <header>
-    <h1>Model Access Checker</h1>
+    <h1>Know which models your key can actually use</h1>
     <p class="subtitle">
-      Paste your API key and base URL to discover which models you can actually use — tested with real requests, not just the model list.
+      Usable LLM checks real model access for OpenAI-compatible and Anthropic-compatible endpoints. It tests each listed model with a live request and explains whether it is usable, blocked, or skipped.
     </p>
   </header>
 
@@ -549,22 +558,22 @@
 
   <div class="how">
     <h2>How it works</h2>
-    <p class="how-sub">We don't just list models — we test each one with a real inference request.</p>
+    <p class="how-sub">Most providers will list models your account can see, but that does not always mean your key can actually use them. Usable LLM verifies access by sending a small live request to each model.</p>
     <div class="steps">
       <div class="step">
         <div class="num">01</div>
-        <h3>Fetch</h3>
-        <p>Queries <code>/v1/models</code> to discover every model on your endpoint.</p>
+        <h3>Discover</h3>
+        <p>We read the provider’s <code>/v1/models</code> endpoint and collect the models your API key is allowed to view.</p>
       </div>
       <div class="step">
         <div class="num">02</div>
-        <h3>Test</h3>
-        <p>Sends a <code>max_tokens: 1</code> request to each chat-capable model. If it responds, you're good.</p>
+        <h3>Verify</h3>
+        <p>We send a minimal test request to each supported model using the correct protocol for that provider.</p>
       </div>
       <div class="step">
         <div class="num">03</div>
-        <h3>Review</h3>
-        <p>See which models are usable, blocked, or skipped — with error details for failures.</p>
+        <h3>Explain</h3>
+        <p><strong>Usable</strong> means the model responded. <strong>Blocked</strong> means the provider rejected the request. <strong>Skipped</strong> means it is not a chat or messages model.</p>
       </div>
     </div>
   </div>
@@ -619,8 +628,28 @@ clearBtn.addEventListener('click', () => {
 
 checkBtn.addEventListener('click', runCheck);
 
+function normalizeProviderMessage(message) {
+  if (!message) return 'Request failed.';
+  const text = String(message).trim();
+
+  const replacements = [
+    [/你请求的模型.*暂不支持。?可用模型[:：]?/i, 'This model is not supported by this provider. Available models: '],
+    [/模型不存在|model does not exist|no such model/i, 'This model does not exist on the provider.'],
+    [/余额不足|insufficient balance|quota exceeded/i, 'Your provider account does not have enough balance or quota for this model.'],
+    [/无权访问|未授权|forbidden|access denied/i, 'Your API key does not have permission to use this model.'],
+    [/请求频繁|rate limit|too many requests/i, 'The provider rate-limited this request. Try again in a moment.'],
+    [/服务不可用|service unavailable/i, 'The provider is temporarily unavailable.'],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    if (pattern.test(text)) return text.replace(pattern, replacement);
+  }
+
+  return text;
+}
+
 function showError(msg) {
-  errorEl.innerHTML = `<div class="error">${msg}</div>`;
+  errorEl.innerHTML = `<div class="error">${normalizeProviderMessage(msg)}</div>`;
 }
 
 function normalizeUrl(url) {

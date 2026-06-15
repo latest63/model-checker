@@ -1,0 +1,23 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0A0A0C"/>
+  <rect x="56" y="56" width="1088" height="518" rx="28" fill="#101115" stroke="#1F212A"/>
+  <g opacity="0.9">
+    <rect x="100" y="100" width="88" height="88" rx="20" fill="#151735" stroke="#2B2F67" stroke-width="3"/>
+    <path d="M120 120H144C157.255 120 168 130.745 168 144C168 157.255 157.255 168 144 168H120V120Z" fill="#6B6BF0"/>
+    <path d="M120 132H142C148.627 132 154 137.373 154 144C154 150.627 148.627 156 142 156H120V132Z" fill="#0F1020"/>
+    <circle cx="176" cy="112" r="10" fill="#34D399"/>
+  </g>
+  <text x="100" y="255" fill="#F3F4F6" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="700">Usable LLM</text>
+  <text x="100" y="315" fill="#A1A1AA" font-family="Inter, Arial, sans-serif" font-size="28">Model access checker for OpenAI-compatible and Anthropic-compatible APIs</text>
+  <rect x="100" y="372" width="1000" height="132" rx="20" fill="#14161D" stroke="#252833"/>
+  <text x="136" y="425" fill="#E5E7EB" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="600">Tests listed models with real requests</text>
+  <text x="136" y="468" fill="#A1A1AA" font-family="Inter, Arial, sans-serif" font-size="24">Shows which models are usable, blocked, or skipped — in plain English.</text>
+  <g>
+    <rect x="100" y="528" width="170" height="28" rx="14" fill="#11231D"/>
+    <text x="124" y="548" fill="#34D399" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Usable</text>
+    <rect x="286" y="528" width="180" height="28" rx="14" fill="#271517"/>
+    <text x="310" y="548" fill="#F87171" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Blocked</text>
+    <rect x="482" y="528" width="170" height="28" rx="14" fill="#211C10"/>
+    <text x="506" y="548" fill="#FBBF24" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Skipped</text>
+  </g>
+</svg>
