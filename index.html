@@ -1024,7 +1024,7 @@ async function runCheck() {
     }
     renderResults(results);
 
-    const testBody = { model: '', messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 50, stream: false };
+    const testBody = { model: '', messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5, stream: false };
     let usable = 0, blocked = 0, skipped = 0, done = 0;
     const errors = [];
 
@@ -1064,7 +1064,7 @@ async function runCheck() {
           ? `${baseUrl}/messages`
           : `${baseUrl}/chat/completions`;
         const testPayload = supportsAnthropic && !supportsOpenAI
-          ? { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 50 }
+          ? { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5 }
           : testBody;
         const testRes = await proxyFetch(testUrl, apiKey, {
           method: 'POST',
