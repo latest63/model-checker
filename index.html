@@ -96,8 +96,8 @@
     -webkit-text-size-adjust: 100%;
     -moz-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    touch-action: manipulation;
     padding-top: 60px;
-    overflow-x: hidden;
   }
 
   .page-backdrop,
@@ -233,6 +233,7 @@
     margin-bottom: 18px;
     padding: 26px 0 8px;
     isolation: isolate;
+    overflow: clip;
   }
 
   .hero-grid::after {
@@ -718,20 +719,27 @@
     }
     nav .inner {
       padding: 8px 12px;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
     }
     .nav-link {
-      padding: 4px 8px;
+      padding: 6px 8px;
       font-size: 12px;
     }
+    .nav-link span {
+      display: none;
+    }
     .theme-toggle {
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
     }
     nav .brand {
-      font-size: 14px;
-      gap: 8px;
+      font-size: 13px;
+      gap: 6px;
+    }
+    nav .brand img {
+      width: 18px;
+      height: 18px;
     }
     .container {
       padding: 20px 12px 48px;
@@ -831,7 +839,8 @@
       Usable LLM
     </a>
     <div class="nav-actions">
-      <a href="https://github.com/latest63/model-checker" class="nav-link" target="_blank">GitHub</a>
+      <a href="https://github.com/latest63/model-checker" class="nav-link" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 ...[truncated]
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
