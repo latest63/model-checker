@@ -88,11 +88,7 @@
 
   body {
     font-family: var(--font-body);
-    background:
-      radial-gradient(52rem 28rem at 82% 12%, rgba(124, 108, 255, 0.18), transparent 60%),
-      radial-gradient(42rem 24rem at 16% 20%, rgba(56, 189, 248, 0.09), transparent 58%),
-      radial-gradient(36rem 18rem at 50% 100%, rgba(139, 92, 246, 0.08), transparent 62%),
-      linear-gradient(180deg, #08090D 0%, var(--bg) 42%, #07080B 100%);
+    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -102,41 +98,37 @@
     overflow-x: hidden;
   }
 
-  body::before,
-  body::after {
-    content: '';
+  .page-backdrop,
+  .page-grid {
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: -1;
   }
 
-  body::before {
+  .page-backdrop {
     background:
-      linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.018) 50%, transparent 100%),
-      radial-gradient(circle at center, transparent 0%, transparent 54%, rgba(255,255,255,0.02) 100%);
-    opacity: 0.35;
+      radial-gradient(52rem 28rem at 82% 12%, rgba(124, 108, 255, 0.18), transparent 60%),
+      radial-gradient(42rem 24rem at 16% 20%, rgba(56, 189, 248, 0.09), transparent 58%),
+      radial-gradient(36rem 18rem at 50% 100%, rgba(139, 92, 246, 0.08), transparent 62%),
+      linear-gradient(180deg, #08090D 0%, var(--bg) 42%, #07080B 100%);
   }
 
-  body::after {
+  .page-grid {
     background-image: linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
     background-size: 48px 48px;
     mask-image: linear-gradient(180deg, rgba(0,0,0,0.26), transparent 82%);
     opacity: 0.18;
   }
 
-  [data-theme="light"] body {
+  [data-theme="light"] .page-backdrop {
     background:
       radial-gradient(52rem 28rem at 82% 12%, rgba(124, 108, 255, 0.10), transparent 58%),
       radial-gradient(42rem 24rem at 16% 20%, rgba(59, 130, 246, 0.07), transparent 58%),
       linear-gradient(180deg, #FCFCFE 0%, var(--bg) 46%, #F2F4FA 100%);
   }
 
-  [data-theme="light"] body::before {
-    opacity: 0.14;
-  }
-
-  [data-theme="light"] body::after {
+  [data-theme="light"] .page-grid {
     background-image: linear-gradient(rgba(17,24,39,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(17,24,39,0.04) 1px, transparent 1px);
     opacity: 0.08;
   }
@@ -268,16 +260,8 @@
     box-shadow: 0 0 18px rgba(124, 108, 255, 0.6);
   }
 
-  .hero-note {
-    margin-top: 18px;
-    max-width: 560px;
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.7;
-  }
-
   .hero-orb {
-    min-height: 360px;
+    min-height: 320px;
     border-radius: 30px;
     border: 1px solid var(--border);
     background:
@@ -668,8 +652,7 @@
       padding-top: 0;
     }
     .hero-orb {
-      min-height: 240px;
-      order: -1;
+      min-height: 220px;
     }
     h1 {
       font-size: clamp(32px, 10vw, 46px);
@@ -708,10 +691,19 @@
   }
 
   @media (max-width: 560px) {
-    body { padding-top: 96px; }
-    nav .brand {
-      font-size: 14px;
-      gap: 8px;
+    body { padding-top: 88px; }
+    nav {
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      height: auto;
+      min-height: 56px;
+      border-radius: 16px;
+    }
+    nav .inner {
+      padding: 10px 12px;
+      gap: 10px;
+      align-items: center;
     }
     .nav-link {
       padding: 6px 8px;
@@ -722,13 +714,15 @@
       height: 38px;
     }
     .container {
-      padding: 28px 14px 56px;
+      padding: 24px 14px 56px;
     }
     .eyebrow {
-      width: 100%;
+      width: fit-content;
+      max-width: 100%;
       justify-content: center;
       text-align: center;
       padding: 9px 12px;
+      margin-bottom: 14px;
     }
     .tool-card {
       padding: 18px 14px;
@@ -782,6 +776,8 @@
 </style>
 </head>
 <body>
+<div class="page-backdrop" aria-hidden="true"></div>
+<div class="page-grid" aria-hidden="true"></div>
 
 <nav>
   <div class="inner">
@@ -807,10 +803,7 @@
       <header>
         <h1>Know which models your key can actually use</h1>
         <p class="subtitle">
-          Usable LLM checks real model access for OpenAI-compatible and Anthropic-compatible endpoints. It tests each listed model with a live request and explains whether it is usable, blocked, or skipped.
-        </p>
-        <p class="hero-note">
-          This helps teams avoid wasting time on model names that appear in a provider list but still fail when you actually try to send a request.
+          Test listed models with a live request and get a clear answer: usable, blocked, or skipped.
         </p>
       </header>
     </div>
