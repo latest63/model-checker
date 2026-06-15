@@ -624,7 +624,22 @@ function showError(msg) {
 }
 
 function normalizeUrl(url) {
-  return url.replace(/\/+$/, '');
+  const trimmed = url.replace(/\/+$/, '');
+  return /\/v\d+(\/)?$/.test(trimmed) ? trimmed : `${trimmed}/v1`;
+}
+
+async function proxyFetch(url, apiKey, options = {}) {
+  return fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      apiKey,
+      method: options.method || 'GET',
+      body: options.body,
+    }),
+    signal: options.signal,
+  });
 }
 
 async function runCheck() {
@@ -640,9 +655,6 @@ async function runCheck() {
   cancelled = false;
   aborter = new AbortController();
 
-  // Use CORS proxy for browser-based requests
-  const corsProxy = 'https://corsproxy.io/?';
-
   checkBtn.disabled = true;
   modelList.innerHTML = '';
   summaryEl.innerHTML = '';
@@ -651,9 +663,8 @@ async function runCheck() {
   statusEl.textContent = 'Fetching model list...';
 
   try {
-    const modelsRes = await fetch(`${corsProxy}${encodeURIComponent(baseUrl + '/models')}`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-      signal: aborter.signal
+    const modelsRes = await proxyFetch(`${baseUrl}/models`, apiKey, {
+      signal: aborter.signal,
     });
 
     if (!modelsRes.ok) {
@@ -710,11 +721,15 @@ async function runCheck() {
       if (pc) pc.textContent = `${done}/${modelIds.length}`;
 
       const lower = id.toLowerCase();
-      if (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
+      const endpoints = Array.isArray(m.supported_endpoint_types) ? m.supported_endpoint_types : [];
+      const supportsAnthropic = endpoints.includes('anthropic');
+      const supportsOpenAI = endpoints.length === 0 || endpoints.includes('openai');
+
+      if (!supportsAnthropic && (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
           lower.includes('davinci') || lower.includes('babbage') || lower.includes('curie') ||
           lower.includes('ada') || lower.includes('moderation') || lower.includes('dall') ||
           lower.includes('009') || lower.includes('002') || lower.includes('001') ||
-          lower.includes('knn') || lower.includes('rerank')) {
+          lower.includes('knn') || lower.includes('rerank'))) {
         results.set(id, { status: 'skipped', reason: 'non-chat model' });
         skipped++;
         updateCard(id, 'skipped', 'Skipped');
@@ -727,11 +742,16 @@ async function runCheck() {
 
       try {
         testBody.model = id;
-        const testRes = await fetch(`${corsProxy}${encodeURIComponent(baseUrl + '/chat/completions')}`, {
+        const testUrl = supportsAnthropic && !supportsOpenAI
+          ? `${baseUrl}/messages`
+          : `${baseUrl}/chat/completions`;
+        const testPayload = supportsAnthropic && !supportsOpenAI
+          ? { model: id, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }
+          : testBody;
+        const testRes = await proxyFetch(testUrl, apiKey, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(testBody),
-          signal: aborter.signal
+          body: testPayload,
+          signal: aborter.signal,
         });
 
         if (testRes.ok) {
