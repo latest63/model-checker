@@ -54,6 +54,7 @@
     --red-border: rgba(255, 123, 114, 0.20);
     --amber: #F5C451;
     --amber-bg: rgba(245, 196, 81, 0.10);
+    --amber-border: rgba(245, 196, 81, 0.22);
     --nav-border: rgba(255,255,255,0.06);
     --shadow-soft: 0 20px 60px rgba(0,0,0,0.32);
     --shadow-card: 0 10px 40px rgba(0,0,0,0.22);
@@ -81,6 +82,7 @@
     --red-border: rgba(214, 76, 76, 0.18);
     --amber: #D48A0A;
     --amber-bg: rgba(212, 138, 10, 0.08);
+    --amber-border: rgba(212, 138, 10, 0.18);
     --nav-border: rgba(17, 24, 39, 0.08);
     --shadow-soft: 0 18px 50px rgba(18, 24, 40, 0.08);
     --shadow-card: 0 8px 28px rgba(18, 24, 40, 0.06);
@@ -408,6 +410,33 @@
     color: var(--text);
   }
 
+  .btn-test {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-test:hover {
+    border-color: var(--accent-border);
+    color: var(--accent);
+    background: var(--accent-subtle);
+  }
+  .btn-test:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .btn-test.usable { border-color: var(--green-border); color: var(--green); background: var(--green-bg); cursor: default; }
+  .btn-test.unusable { border-color: var(--red-border); color: var(--red); background: var(--red-bg); cursor: default; }
+  .btn-test.skipped { border-color: transparent; cursor: default; }
+  .btn-test.testing { border-color: var(--amber-border); color: var(--amber); background: var(--amber-bg); pointer-events: none; }
+
   /* Status */
   .status {
     font-size: 13px;
@@ -455,10 +484,10 @@
 
   .model-card {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-columns: 28px minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: 10px;
+    padding: 10px 14px;
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
     transition: background 0.15s;
@@ -783,6 +812,10 @@
       grid-template-columns: 28px minmax(0, 1fr);
       align-items: start;
     }
+    .btn-test {
+      margin-top: 4px;
+      align-self: start;
+    }
     .model-badge {
       grid-column: 2;
       justify-self: start;
@@ -874,7 +907,8 @@
           <input type="password" id="apiKey" placeholder="sk-...">
         </div>
         <div class="actions">
-          <button class="btn btn-primary" id="checkBtn">Check Models</button>
+          <button class="btn btn-primary" id="fetchBtn">Fetch Models</button>
+          <button class="btn btn-primary" id="testAllBtn" disabled>Test All</button>
           <button class="btn btn-secondary" id="clearBtn">Clear</button>
         </div>
       </div>
@@ -886,7 +920,7 @@
   <div id="summary" class="summary"></div>
   <div id="modelList" class="model-list">
     <div class="empty">
-      <p>Enter your API details and click <strong>Check Models</strong> to get started.</p>
+      <p>Enter your API details and click <strong>Fetch Models</strong> to get started.</p>
     </div>
   </div>
   <div id="progressWrap" class="progress-wrap"></div>
@@ -939,7 +973,8 @@ setTheme(getTheme());
 // App
 const baseUrlInput = document.getElementById('baseUrl');
 const apiKeyInput = document.getElementById('apiKey');
-const checkBtn = document.getElementById('checkBtn');
+const fetchBtn = document.getElementById('fetchBtn');
+const testAllBtn = document.getElementById('testAllBtn');
 const clearBtn = document.getElementById('clearBtn');
 const statusEl = document.getElementById('status');
 const errorEl = document.getElementById('error');
@@ -949,19 +984,24 @@ const progressWrap = document.getElementById('progressWrap');
 
 let cancelled = false;
 let aborter = null;
+let fetchedModelIds = [];
+let results = new Map();
 
 clearBtn.addEventListener('click', () => {
   apiKeyInput.value = '';
-  modelList.innerHTML = '<div class="empty"><p>Enter your API details and click <strong>Check Models</strong> to get started.</p></div>';
+  results = new Map();
+  fetchedModelIds = [];
+  modelList.innerHTML = '<div class="empty"><p>Enter your API details and click <strong>Fetch Models</strong> to get started.</p></div>';
   summaryEl.innerHTML = '';
   statusEl.textContent = '';
   errorEl.innerHTML = '';
   progressWrap.innerHTML = '';
+  testAllBtn.disabled = true;
   cancelled = true;
   if (aborter) aborter.abort();
 });
 
-checkBtn.addEventListener('click', runCheck);
+fetchBtn.addEventListener('click', fetchModels);
 
 function normalizeProviderMessage(message) {
   if (!message) return 'Request failed.';
@@ -1006,7 +1046,7 @@ async function proxyFetch(url, apiKey, options = {}) {
   });
 }
 
-async function runCheck() {
+async function fetchModels() {
   let baseUrl = baseUrlInput.value.trim();
   const apiKey = apiKeyInput.value.trim();
 
@@ -1019,12 +1059,14 @@ async function runCheck() {
   cancelled = false;
   aborter = new AbortController();
 
-  checkBtn.disabled = true;
+  fetchBtn.disabled = true;
+  testAllBtn.disabled = true;
   modelList.innerHTML = '';
   summaryEl.innerHTML = '';
   errorEl.innerHTML = '';
   progressWrap.innerHTML = '';
   statusEl.textContent = 'Fetching model list...';
+  results = new Map();
 
   try {
     const modelsRes = await proxyFetch(`${baseUrl}/models`, apiKey, {
@@ -1052,130 +1094,244 @@ async function runCheck() {
 
     if (modelIds.length === 0) {
       statusEl.textContent = 'No models returned by this endpoint.';
-      checkBtn.disabled = false;
+      fetchBtn.disabled = false;
       return;
     }
 
-    statusEl.textContent = `Found ${modelIds.length} models — testing...`;
-    progressWrap.innerHTML = `
-      <span>Testing each model with a real request</span>
-      <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
-      <span id="progressCount">0/${modelIds.length}</span>
-    `;
+    fetchedModelIds = modelIds;
 
-    const results = new Map();
+    // Store raw model objects for endpoint type info
     for (const m of models) {
       const id = typeof m === 'string' ? m : m.id;
-      results.set(id, { status: 'pending' });
+      results.set(id, { status: 'ready', raw: m });
     }
     renderResults(results);
 
-    const testBody = { model: '', messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5, stream: false };
-    let usable = 0, blocked = 0, skipped = 0, done = 0;
-    const errors = [];
-
-    for (const m of models) {
-      if (cancelled) break;
-      const id = typeof m === 'string' ? m : m.id;
-      done++;
-
-      const pf = document.getElementById('progressFill');
-      const pc = document.getElementById('progressCount');
-      if (pf) pf.style.width = `${(done / modelIds.length) * 100}%`;
-      if (pc) pc.textContent = `${done}/${modelIds.length}`;
-
-      const lower = id.toLowerCase();
-      const endpoints = Array.isArray(m.supported_endpoint_types) ? m.supported_endpoint_types : [];
-      const supportsAnthropic = endpoints.includes('anthropic');
-      const supportsOpenAI = endpoints.length === 0 || endpoints.includes('openai');
-
-      if (!supportsAnthropic && (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
-          lower.includes('davinci') || lower.includes('babbage') || lower.includes('curie') ||
-          lower.includes('ada') || lower.includes('moderation') || lower.includes('dall') ||
-          lower.includes('009') || lower.includes('002') || lower.includes('001') ||
-          lower.includes('knn') || lower.includes('rerank'))) {
-        results.set(id, { status: 'skipped', reason: 'non-chat model' });
-        skipped++;
-        updateCard(id, 'skipped', 'Skipped');
-        statusEl.textContent = `${done}/${modelIds.length} — skipped ${id}`;
-        continue;
-      }
-
-      statusEl.textContent = `${done}/${modelIds.length} — testing ${id}`;
-      updateCard(id, 'checking', 'Testing');
-
-      try {
-        testBody.model = id;
-        const testUrl = supportsAnthropic && !supportsOpenAI
-          ? `${baseUrl}/messages`
-          : `${baseUrl}/chat/completions`;
-        const testPayload = supportsAnthropic && !supportsOpenAI
-          ? { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5 }
-          : testBody;
-        const testRes = await proxyFetch(testUrl, apiKey, {
-          method: 'POST',
-          body: testPayload,
-          signal: aborter.signal,
-        });
-
-        if (testRes.ok) {
-          results.set(id, { status: 'usable' });
-          usable++;
-          updateCard(id, 'usable', 'Usable');
-        } else {
-          const errText = await testRes.text().catch(() => '');
-          let reason = `HTTP ${testRes.status}`;
-          if (errText) { try { const j = JSON.parse(errText); reason = j.error?.message || reason; } catch { reason = errText.slice(0, 150); } }
-          results.set(id, { status: 'unusable', reason });
-          blocked++;
-          updateCard(id, 'unusable', 'Blocked');
-          errors.push({ id, reason });
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') break;
-        results.set(id, { status: 'unusable', reason: err.message });
-        blocked++;
-        updateCard(id, 'unusable', 'Error');
-        errors.push({ id, reason: err.message });
-      }
-    }
-
-    if (cancelled) { statusEl.textContent = 'Cancelled.'; checkBtn.disabled = false; return; }
-
-    summaryEl.innerHTML = `
-      <span class="stat">Total: <strong>${modelIds.length}</strong></span>
-      <span class="stat" style="color:var(--green)">Usable: <strong>${usable}</strong></span>
-      <span class="stat" style="color:var(--red)">Blocked: <strong>${blocked}</strong></span>
-      <span class="stat" style="color:var(--text-muted)">Skipped: <strong>${skipped}</strong></span>
-    `;
-
-    statusEl.textContent = usable > 0 ? `${usable} model${usable > 1 ? 's' : ''} usable.` : blocked > 0 ? 'No usable models found for this key.' : 'No chat models to test.';
-    progressWrap.innerHTML = '';
-
-    if (errors.length > 0) {
-      const unique = [...new Set(errors.map(e => e.reason))];
-      if (unique.length <= 3) showError(unique.join(' | '));
-      else showError(unique.slice(0, 3).join(' | ') + ` (and ${unique.length - 3} more)`);
-    }
+    statusEl.textContent = `Found ${modelIds.length} models. Ready to test.`;
+    testAllBtn.disabled = false;
   } catch (err) {
     if (err.name === 'AbortError') statusEl.textContent = 'Cancelled.';
-    else { showError(err.message); statusEl.textContent = 'Failed.'; }
+    else { showError(err.message); statusEl.textContent = 'Failed to fetch models.'; }
   }
 
-  checkBtn.disabled = false;
+  fetchBtn.disabled = false;
+}
+
+testAllBtn.addEventListener('click', testAllModels);
+
+async function testAllModels() {
+  if (fetchedModelIds.length === 0) return;
+
+  cancelled = false;
+  aborter = new AbortController();
+  testAllBtn.disabled = true;
+  testAllBtn.textContent = 'Testing...';
+  errorEl.innerHTML = '';
+
+  statusEl.textContent = `Testing ${fetchedModelIds.length} models...`;
+  progressWrap.innerHTML = `
+    <span>Testing each model with a real request</span>
+    <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+    <span id="progressCount">0/${fetchedModelIds.length}</span>
+  `;
+
+  let usable = 0, blocked = 0, skipped = 0, done = 0;
+  const errors = [];
+
+  for (const id of fetchedModelIds) {
+    if (cancelled) break;
+    done++;
+
+    const pf = document.getElementById('progressFill');
+    const pc = document.getElementById('progressCount');
+    if (pf) pf.style.width = `${(done / fetchedModelIds.length) * 100}%`;
+    if (pc) pc.textContent = `${done}/${fetchedModelIds.length}`;
+
+    const entry = results.get(id);
+    const raw = entry?.raw || {};
+    const lower = id.toLowerCase();
+    const endpoints = Array.isArray(raw.supported_endpoint_types) ? raw.supported_endpoint_types : [];
+    const supportsAnthropic = endpoints.includes('anthropic');
+    const supportsOpenAI = endpoints.length === 0 || endpoints.includes('openai');
+
+    if (!supportsAnthropic && (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
+        lower.includes('davinci') || lower.includes('babbage') || lower.includes('curie') ||
+        lower.includes('ada') || lower.includes('moderation') || lower.includes('dall') ||
+        lower.includes('009') || lower.includes('002') || lower.includes('001') ||
+        lower.includes('knn') || lower.includes('rerank'))) {
+      results.set(id, { status: 'skipped', reason: 'non-chat model' });
+      skipped++;
+      updateCard(id, 'skipped', 'Skipped');
+      updateTestBtn(id, 'skipped');
+      statusEl.textContent = `${done}/${fetchedModelIds.length} — skipped ${id}`;
+      continue;
+    }
+
+    statusEl.textContent = `${done}/${fetchedModelIds.length} — testing ${id}`;
+    updateCard(id, 'checking', 'Testing');
+    updateTestBtn(id, 'testing');
+
+    try {
+      const testBody = { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5, stream: false };
+      const testUrl = supportsAnthropic && !supportsOpenAI
+        ? `${normalizeUrl(baseUrlInput.value.trim())}/messages`
+        : `${normalizeUrl(baseUrlInput.value.trim())}/chat/completions`;
+      const testPayload = supportsAnthropic && !supportsOpenAI
+        ? { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5 }
+        : testBody;
+      const testRes = await proxyFetch(testUrl, apiKeyInput.value.trim(), {
+        method: 'POST',
+        body: testPayload,
+        signal: aborter.signal,
+      });
+
+      if (testRes.ok) {
+        results.set(id, { status: 'usable' });
+        usable++;
+        updateCard(id, 'usable', 'Usable');
+        updateTestBtn(id, 'usable');
+      } else {
+        const errText = await testRes.text().catch(() => '');
+        let reason = `HTTP ${testRes.status}`;
+        if (errText) { try { const j = JSON.parse(errText); reason = j.error?.message || reason; } catch { reason = errText.slice(0, 150); } }
+        results.set(id, { status: 'unusable', reason });
+        blocked++;
+        updateCard(id, 'unusable', 'Blocked');
+        updateTestBtn(id, 'unusable');
+        errors.push({ id, reason });
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') break;
+      results.set(id, { status: 'unusable', reason: err.message });
+      blocked++;
+      updateCard(id, 'unusable', 'Error');
+      updateTestBtn(id, 'unusable');
+      errors.push({ id, reason: err.message });
+    }
+  }
+
+  if (cancelled) { statusEl.textContent = 'Cancelled.'; testAllBtn.disabled = false; testAllBtn.textContent = 'Test All'; return; }
+
+  summaryEl.innerHTML = `
+    <span class="stat">Total: <strong>${fetchedModelIds.length}</strong></span>
+    <span class="stat" style="color:var(--green)">Usable: <strong>${usable}</strong></span>
+    <span class="stat" style="color:var(--red)">Blocked: <strong>${blocked}</strong></span>
+    <span class="stat" style="color:var(--text-muted)">Skipped: <strong>${skipped}</strong></span>
+  `;
+
+  statusEl.textContent = usable > 0 ? `${usable} model${usable > 1 ? 's' : ''} usable.` : blocked > 0 ? 'No usable models found for this key.' : 'No chat models to test.';
+  progressWrap.innerHTML = '';
+
+  if (errors.length > 0) {
+    const unique = [...new Set(errors.map(e => e.reason))];
+    if (unique.length <= 3) showError(unique.join(' | '));
+    else showError(unique.slice(0, 3).join(' | ') + ` (and ${unique.length - 3} more)`);
+  }
+
+  testAllBtn.disabled = false;
+  testAllBtn.textContent = 'Test All';
+}
+
+async function testModel(id) {
+  const entry = results.get(id);
+  if (!entry || entry.status === 'testing' || entry.status === 'usable' || entry.status === 'skipped') return;
+
+  aborter = new AbortController();
+
+  const raw = entry.raw || {};
+  const lower = id.toLowerCase();
+  const endpoints = Array.isArray(raw.supported_endpoint_types) ? raw.supported_endpoint_types : [];
+  const supportsAnthropic = endpoints.includes('anthropic');
+  const supportsOpenAI = endpoints.length === 0 || endpoints.includes('openai');
+
+  // Re-check skip rules
+  if (!supportsAnthropic && (lower.includes('embedding') || lower.includes('tts') || lower.includes('whisper') ||
+      lower.includes('davinci') || lower.includes('babbage') || lower.includes('curie') ||
+      lower.includes('ada') || lower.includes('moderation') || lower.includes('dall') ||
+      lower.includes('009') || lower.includes('002') || lower.includes('001') ||
+      lower.includes('knn') || lower.includes('rerank'))) {
+    results.set(id, { status: 'skipped', reason: 'non-chat model' });
+    updateCard(id, 'skipped', 'Skipped');
+    updateTestBtn(id, 'skipped');
+    return;
+  }
+
+  results.set(id, { status: 'testing' });
+  updateCard(id, 'checking', 'Testing');
+  updateTestBtn(id, 'testing');
+  statusEl.textContent = `Testing ${id}...`;
+
+  try {
+    const testBody = { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5, stream: false };
+    const testUrl = supportsAnthropic && !supportsOpenAI
+      ? `${normalizeUrl(baseUrlInput.value.trim())}/messages`
+      : `${normalizeUrl(baseUrlInput.value.trim())}/chat/completions`;
+    const testPayload = supportsAnthropic && !supportsOpenAI
+      ? { model: id, messages: [{ role: 'user', content: 'Return "OK" if you receive this.' }], max_tokens: 5 }
+      : testBody;
+    const testRes = await proxyFetch(testUrl, apiKeyInput.value.trim(), {
+      method: 'POST',
+      body: testPayload,
+      signal: aborter.signal,
+    });
+
+    if (testRes.ok) {
+      results.set(id, { status: 'usable' });
+      updateCard(id, 'usable', 'Usable');
+      updateTestBtn(id, 'usable');
+      statusEl.textContent = `${id} — usable`;
+    } else {
+      const errText = await testRes.text().catch(() => '');
+      let reason = `HTTP ${testRes.status}`;
+      if (errText) { try { const j = JSON.parse(errText); reason = j.error?.message || reason; } catch { reason = errText.slice(0, 150); } }
+      results.set(id, { status: 'unusable', reason });
+      updateCard(id, 'unusable', 'Blocked');
+      updateTestBtn(id, 'unusable');
+      showError(reason);
+      statusEl.textContent = `${id} — blocked`;
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    results.set(id, { status: 'unusable', reason: err.message });
+    updateCard(id, 'unusable', 'Error');
+    updateTestBtn(id, 'unusable');
+    showError(err.message);
+    statusEl.textContent = `${id} — error`;
+  }
+
+  updateSummary();
+}
+
+function updateSummary() {
+  let total = 0, usable = 0, blocked = 0, skipped = 0;
+  for (const [_, v] of results) {
+    total++;
+    if (v.status === 'usable') usable++;
+    else if (v.status === 'unusable') blocked++;
+    else if (v.status === 'skipped') skipped++;
+  }
+  summaryEl.innerHTML = `
+    <span class="stat">Total: <strong>${total}</strong></span>
+    <span class="stat" style="color:var(--green)">Usable: <strong>${usable}</strong></span>
+    <span class="stat" style="color:var(--red)">Blocked: <strong>${blocked}</strong></span>
+    <span class="stat" style="color:var(--text-muted)">Skipped: <strong>${skipped}</strong></span>
+  `;
 }
 
 function renderResults(results) {
   modelList.innerHTML = '';
-  for (const [id] of results) {
+  for (const [id, entry] of results) {
     const card = document.createElement('div');
     card.className = 'model-card checking';
     card.id = `c-${cssEsc(id)}`;
     card.innerHTML = `
       <div class="model-icon">⌛</div>
-      <div class="model-info"><div class="model-name">${esc(id)}</div><div class="model-meta">queued</div></div>
-      <span class="model-badge">Waiting</span>
+      <div class="model-info"><div class="model-name">${esc(id)}</div><div class="model-meta">fetched</div></div>
+      <button class="btn-test" id="tb-${cssEsc(id)}">Test</button>
+      <span class="model-badge">Ready</span>
     `;
+    const tb = card.querySelector('.btn-test');
+    tb.onclick = () => testModel(id);
     modelList.appendChild(card);
   }
 }
@@ -1196,6 +1352,15 @@ function updateCard(id, cls, badge) {
     else if (cls === 'skipped') m.textContent = 'non-chat';
     else m.textContent = 'testing';
   }
+}
+
+function updateTestBtn(id, status) {
+  const btn = document.getElementById(`tb-${cssEsc(id)}`);
+  if (!btn) return;
+  const labels = { usable: '✓ Usable', unusable: '✗ Blocked', skipped: '– Skipped', testing: 'Testing...', ready: 'Test' };
+  btn.textContent = labels[status] || 'Test';
+  btn.className = `btn-test ${status}`;
+  btn.disabled = status === 'testing' || status === 'usable' || status === 'skipped';
 }
 
 function cssEsc(s) { return s.replace(/[^\w-]/g, '_'); }
